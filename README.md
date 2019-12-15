@@ -1,7 +1,7 @@
 docker-firewalld-shim
 =====================
 This Go program is a compatibility shim to trigger the recreation
-of docker iptables to use with iptables-persistent and systemd.
+of docker iptables to use with netfilter-persistent and systemd.
 
 [![Build Status](https://travis-ci.org/mback2k/docker-firewalld-shim.svg?branch=master)](https://travis-ci.org/mback2k/docker-firewalld-shim)
 [![GoDoc](https://godoc.org/github.com/mback2k/docker-firewalld-shim?status.svg)](https://godoc.org/github.com/mback2k/docker-firewalld-shim)
@@ -58,9 +58,13 @@ In order to be able to actually run and use this tool as a firewalld simulation,
 you need to deploy the dbus system policy for firewalld to `/etc/dbus-1/system.d/`:
 
 Just store the following file from the firewalld project repository:
-`https://raw.githubusercontent.com/firewalld/firewalld/v0.8.0/config/FirewallD.conf`
+```
+https://raw.githubusercontent.com/firewalld/firewalld/v0.8.0/config/FirewallD.conf
+```
 as:
-`/etc/dbus-1/system.d/FirewallD.conf`
+```
+/etc/dbus-1/system.d/FirewallD.conf
+```
 and then reload the dbus service via `systemctl reload dbus`.
 
 Disclaimer
