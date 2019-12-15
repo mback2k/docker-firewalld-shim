@@ -26,21 +26,20 @@ import (
 	"github.com/godbus/dbus/v5/prop"
 )
 
-const (
-	dbusInterfaceDirect = dbusInterface + ".direct"
-)
-
 type firewallDirect struct {
-	methods  map[string]string
-	firewall *firewall
+	commands map[string]string
 }
 
-func (fd *firewallDirect) export(conn *dbus.Conn) error {
-	return conn.ExportWithMap(fd, fd.methods, dbusPath, dbusInterfaceDirect)
+func (fd *firewallDirect) getMethods() map[string]string {
+	return map[string]string{"Passthrough": "passthrough"}
+}
+
+func (fd *firewallDirect) getName() string {
+	return dbusInterface + ".direct"
 }
 
 func (fd *firewallDirect) Passthrough(ipv string, args []string) (string, *dbus.Error) {
-	path, ok := fd.firewall.commands[ipv]
+	path, ok := fd.commands[ipv]
 	if !ok {
 		return ipv, prop.ErrInvalidArg
 	}
@@ -59,9 +58,20 @@ func (fd *firewallDirect) Passthrough(ipv string, args []string) (string, *dbus.
 	return output, nil
 }
 
-func createFirwallDirect(fw *firewall) (*firewallDirect, error) {
+func createFirewallDirect() (*firewallDirect, error) {
+	cmds := map[string]string{
+		"ipv4": "iptables",
+		"ipv6": "ip6tables",
+		"eb":   "ebtables",
+	}
+	for ipv, name := range cmds {
+		path, err := exec.LookPath(name)
+		if err != nil {
+			return nil, err
+		}
+		cmds[ipv] = path
+	}
 	return &firewallDirect{
-		firewall: fw,
-		methods:  map[string]string{"Passthrough": "passthrough"},
+		commands: cmds,
 	}, nil
 }

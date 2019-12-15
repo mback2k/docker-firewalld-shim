@@ -25,7 +25,8 @@ import (
 )
 
 const (
-	dbusPath = "/org/fedoraproject/FirewallD1"
+	dbusPath      = "/org/fedoraproject/FirewallD1"
+	dbusInterface = "org.fedoraproject.FirewallD1"
 )
 
 func main() {
@@ -35,30 +36,38 @@ func main() {
 	}
 	defer conn.Close()
 
+	s, err := createServer(conn, dbusPath, dbusInterface)
+	if err != nil {
+		log.Panicln(err)
+	}
+
 	fw, err := createFirewall()
 	if err != nil {
 		log.Panicln(err)
 	}
-	if err := fw.export(conn); err != nil {
-		log.Panicln(err)
-	}
 
-	fd, err := createFirwallDirect(fw)
+	fd, err := createFirewallDirect()
 	if err != nil {
 		log.Panicln(err)
 	}
-	if err := fd.export(conn); err != nil {
-		log.Panicln(err)
-	}
 
-	reply, err := conn.RequestName(dbusInterface, dbus.NameFlagDoNotQueue)
+	err = s.export(fw)
 	if err != nil {
 		log.Panicln(err)
 	}
-	defer conn.ReleaseName(dbusInterface)
+	defer s.unExport(fw)
 
-	if reply != dbus.RequestNameReplyPrimaryOwner {
-		log.Panicln("Name already taken")
+	err = s.export(fd)
+	if err != nil {
+		log.Panicln(err)
 	}
+	defer s.unExport(fd)
+
+	err = s.publish()
+	if err != nil {
+		log.Panicln(err)
+	}
+	defer s.unPublish()
+
 	select {}
 }

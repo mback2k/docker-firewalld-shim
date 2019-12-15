@@ -19,22 +19,17 @@
 package main
 
 import (
-	"os/exec"
-
 	"github.com/godbus/dbus/v5"
 )
 
-const (
-	dbusInterface = "org.fedoraproject.FirewallD1"
-)
+type firewall struct{}
 
-type firewall struct {
-	methods  map[string]string
-	commands map[string]string
+func (fw *firewall) getMethods() map[string]string {
+	return map[string]string{"GetDefaultZone": "getDefaultZone"}
 }
 
-func (fw *firewall) export(conn *dbus.Conn) error {
-	return conn.ExportWithMap(fw, fw.methods, dbusPath, dbusInterface)
+func (fw *firewall) getName() string {
+	return dbusInterface
 }
 
 func (fw *firewall) GetDefaultZone() (string, *dbus.Error) {
@@ -42,20 +37,5 @@ func (fw *firewall) GetDefaultZone() (string, *dbus.Error) {
 }
 
 func createFirewall() (*firewall, error) {
-	cmds := map[string]string{
-		"ipv4": "iptables",
-		"ipv6": "ip6tables",
-		"eb":   "ebtables",
-	}
-	for ipv, name := range cmds {
-		path, err := exec.LookPath(name)
-		if err != nil {
-			return nil, err
-		}
-		cmds[ipv] = path
-	}
-	return &firewall{
-		methods:  map[string]string{"GetDefaultZone": "getDefaultZone"},
-		commands: cmds,
-	}, nil
+	return &firewall{}, nil
 }
