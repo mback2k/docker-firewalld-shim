@@ -1,0 +1,37 @@
+language: go
+
+sudo: false
+
+go:
+  - 1.x
+  - master
+
+env:
+  global:
+    - GO111MODULE=on
+    - BUILD_GOOS=linux
+  matrix:
+    - BUILD_GOARCH=amd64
+    - BUILD_GOARCH=arm BUILD_GOARM=5
+    - BUILD_GOARCH=arm BUILD_GOARM=6
+    - BUILD_GOARCH=arm BUILD_GOARM=7
+
+matrix:
+  allow_failures:
+    - go: master
+
+script:
+  - GOARCH=${BUILD_GOARCH} GOARM=${BUILD_GOARM} GOOS=${BUILD_GOOS} go build -o "docker-firewalld-shim.${BUILD_GOARCH}${BUILD_GOARM}" -ldflags="-s -w"
+  - ls -lah
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: v7YV42kyrAMKssEPp2+Hv09x5xUSvgQT2Ijgk5bYOetB1T9aluZnkwvE3IPQCzvEdQ/XF87U7EzslNejM2IICfm6gzikcS/7xYl3fFZcupTurKNYs1tZE05nUwXKrkjR7EvCjCD23Pq3bnY8Ydb0MPio2GsIT3FMvL371Nseyc+/CiNFhQPRQjqqxh3DONJsJ39YpwO3PxPUmWMIuvH/Ow/AKxX0ysS8hOXR3je8XPf35QW65EH0vP+v3YV9CXuWSWHwbx5Rlhl7PEY48TxDaWna81KuhfFBXhBMVezNWJdW/bLpj44kp6yGncvj/XGYA9qJrYe9XCQ+F7EI6G8HkoDSUxsQzkJNW2QNJQbKyA4G2R29+oRmA4ckCoi6NTuX74OWXxeY5vBh5759FOYLc5VyvLzWxdmA1bI+hW5+kVjeCpGlNGZQTNNkNv5NOPkBTvZBzgITSJLVFK9nw/F8efKDqWDt3bQDL2GRJFKmBny3Imy3ymoLhPnA6B1aJLSC4IJ46z0hSM14h+IndkRxP3LeI9dmwISU3F0KVQkW8KF4KlxEbZW8fIEf0N8FSIoWb6KyN26l3bYr1fT7gVb5CJZlU1yNvjKOr+5VnR5CEPAiwxWPJI6nhrCNUR/SiLjOVGaEwwZ2D9TW5JSwYv2E7cjMqyN55Y3mCRh65av/tsA=
+  file_glob: true
+  file: docker-firewalld-shim.*
+  on:
+    tags: true
+    repo: mback2k/docker-firewalld-shim
+    condition: $TRAVIS_GO_VERSION != "master"
