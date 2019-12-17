@@ -46,6 +46,10 @@ type server struct {
 	name string
 }
 
+func (s *server) signalReloaded() error {
+	return s.conn.Emit(s.path, s.name+".Reloaded")
+}
+
 func (s *server) export(svc service) error {
 	return s.conn.ExportWithMap(svc, svc.getMethods(), s.path, svc.getName())
 }

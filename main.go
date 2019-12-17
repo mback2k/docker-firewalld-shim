@@ -19,7 +19,11 @@
 package main
 
 import (
+	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/godbus/dbus/v5"
 )
@@ -29,12 +33,56 @@ const (
 	dbusInterface = "org.fedoraproject.FirewallD1"
 )
 
-func main() {
-	conn, err := dbus.SystemBus()
+func handleSignals(ctx context.Context, stop chan<- bool) {
+	sigs := make(chan os.Signal, 1)
+
+	signal.Notify(sigs, syscall.SIGHUP)
+	signal.Notify(sigs, syscall.SIGINT)
+	signal.Notify(sigs, syscall.SIGTERM)
+
+	go func() {
+		defer signal.Reset(syscall.SIGHUP)
+		defer signal.Reset(syscall.SIGINT)
+		defer signal.Reset(syscall.SIGTERM)
+
+		defer close(sigs)
+
+	loop:
+		for {
+			select {
+			case <-ctx.Done():
+				// returning not to leak the goroutine
+				break loop
+			case sig := <-sigs:
+				switch sig {
+				case syscall.SIGINT:
+					stop <- true
+				case syscall.SIGTERM:
+					stop <- true
+				case syscall.SIGHUP:
+					stop <- false
+				}
+			}
+		}
+	}()
+}
+
+func workerLoop(ctx context.Context, stop <-chan bool) {
+	conn, err := dbus.SystemBusPrivate(dbus.WithContext(ctx))
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer conn.Close()
+
+	err = conn.Auth(nil)
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	err = conn.Hello()
+	if err != nil {
+		log.Panicln(err)
+	}
 
 	s, err := createServer(conn, dbusPath, dbusInterface)
 	if err != nil {
@@ -46,7 +94,7 @@ func main() {
 		log.Panicln(err)
 	}
 
-	fd, err := createFirewallDirect()
+	fd, err := createFirewallDirect(ctx)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -69,5 +117,33 @@ func main() {
 	}
 	defer s.unPublish()
 
-	select {}
+loop:
+	for {
+		select {
+		case <-ctx.Done():
+			// returning not to leak the goroutine
+			break loop
+		case stop := <-stop:
+			if stop {
+				break loop
+			} else {
+				err := s.signalReloaded()
+				if err != nil {
+					log.Panicln(err)
+				}
+			}
+		}
+	}
+}
+
+func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	stop := make(chan bool)
+
+	handleSignals(ctx, stop)
+	workerLoop(ctx, stop)
+
+	close(stop)
 }

@@ -19,6 +19,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os/exec"
 
@@ -27,6 +28,7 @@ import (
 )
 
 type firewallDirect struct {
+	ctx      context.Context
 	commands map[string]string
 }
 
@@ -45,7 +47,7 @@ func (fd *firewallDirect) Passthrough(ipv string, args []string) (string, *dbus.
 	}
 	log.SetPrefix("> ")
 	log.Println(path, args)
-	cmd := exec.Command(path, args...)
+	cmd := exec.CommandContext(fd.ctx, path, args...)
 	bytes, err := cmd.CombinedOutput()
 	output := string(bytes)
 	if err != nil {
@@ -58,7 +60,7 @@ func (fd *firewallDirect) Passthrough(ipv string, args []string) (string, *dbus.
 	return output, nil
 }
 
-func createFirewallDirect() (*firewallDirect, error) {
+func createFirewallDirect(ctx context.Context) (*firewallDirect, error) {
 	cmds := map[string]string{
 		"ipv4": "iptables",
 		"ipv6": "ip6tables",
@@ -72,6 +74,7 @@ func createFirewallDirect() (*firewallDirect, error) {
 		cmds[ipv] = path
 	}
 	return &firewallDirect{
+		ctx:      ctx,
 		commands: cmds,
 	}, nil
 }
