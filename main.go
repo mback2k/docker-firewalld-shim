@@ -127,6 +127,7 @@ loop:
 			if stop {
 				break loop
 			} else {
+				log.Println("Sending signal Reloaded ...")
 				err := s.signalReloaded()
 				if err != nil {
 					log.Panicln(err)

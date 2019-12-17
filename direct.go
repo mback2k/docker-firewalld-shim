@@ -45,6 +45,7 @@ func (fd *firewallDirect) Passthrough(ipv string, args []string) (string, *dbus.
 	if !ok {
 		return ipv, prop.ErrInvalidArg
 	}
+	defer log.SetPrefix("")
 	log.SetPrefix("> ")
 	log.Println(path, args)
 	cmd := exec.CommandContext(fd.ctx, path, args...)
