@@ -40,6 +40,7 @@ ReloadPropagatedFrom=iptables.service ip6tables.service ebtables.service ipset.s
 Type=dbus
 BusName=org.fedoraproject.FirewallD1
 ExecStart=/usr/local/sbin/docker-firewalld-shim
+ExecReloaded=/bin/kill -HUP $MAINPID
 KillMode=mixed
 Restart=on-failure
 PrivateTmp=true
